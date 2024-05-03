@@ -14,6 +14,9 @@ module charity_tracking::charity_tracking {
     const EUndeclaredPurpose: u64 = 2;
     const ENotValidatedByAuthority: u64 = 3;
     const ENotOwner: u64 = 4;
+    const EInvalidRecipient: u64 = 5; // New error code
+    const EInvalidAuthority: u64 = 6; // New error code
+    const ENotAuthority: u64 = 7; // New error code
 
     // Struct definitions
     struct AdminCap has key { id: UID }
@@ -37,7 +40,8 @@ module charity_tracking::charity_tracking {
     }
 
     // Accessors
-    public entry fun purpose_id(_: &AuthorityCap, donation: &Donation): u64 {
+    public entry fun purpose_id(authority_cap: &AuthorityCap, donation: &Donation, ctx: &mut TxContext): u64 {
+        assert!(tx_context::sender(ctx) == object::address_from_id(authority_cap.id), ENotAuthority); // Additional check
         donation.purpose_id
     }
 
@@ -46,8 +50,8 @@ module charity_tracking::charity_tracking {
         donation.amount
     }
 
-    public entry fun is_received(donation: &Donation): u64 {
-        balance::value(&donation.donation_fund)
+    public entry fun is_received(donation: &Donation): (u64, address) {
+        (balance::value(&donation.donation_fund), donation.donor_address)
     }
 
     public entry fun authority_has_validated(donation: &Donation): bool {
@@ -96,11 +100,12 @@ module charity_tracking::charity_tracking {
     public entry fun receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
+        assert!(recipient_address != donation.donor_address, EInvalidRecipient); // Additional check
 
         // Transfer the balance
         let amount = balance::value(&donation.donation_fund);
         let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-        transfer::public_transfer(fund, tx_context::sender(ctx));
+        transfer::public_transfer(fund, recipient_address);
 
         // Transfer the ownership
         donation.donor_address = recipient_address;
@@ -110,25 +115,26 @@ module charity_tracking::charity_tracking {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         assert!(donation.authority_validation == false, ENotValidatedByAuthority);
+        assert!(tx_context::sender(ctx) != donation.donor_address, EInvalidAuthority); // Additional check
 
         // Transfer the balance
         let amount = balance::value(&donation.donation_fund);
         let fund = coin::take(&mut donation.donation_fund, amount, ctx);
         transfer::public_transfer(fund, tx_context::sender(ctx));
     }
+
     // Additional function: Cancel Donation
     public entry fun cancel_donation(donation: &mut Donation, ctx: &mut TxContext) {
-    // Check if the donor is the sender
-    assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
-    // Check if the donation is pending and not received by the recipient
-    assert!(donation.recipient_is_pending, ERecipientPending);
-    
-    // Return the donation amount to the donor
-    let amount = balance::value(&donation.donation_fund);
-    let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-    transfer::public_transfer(fund, tx_context::sender(ctx));
-    
-    // Mark the donation as cancelled
-    donation.recipient_is_pending = false;
+        assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
+        assert!(donation.recipient_is_pending, ERecipientPending);
+        assert!(donation.authority_validation == false, ENotValidatedByAuthority); // Additional check
+
+        // Return the donation amount to the donor
+        let amount = balance::value(&donation.donation_fund);
+        let fund = coin::take(&mut donation.donation_fund, amount, ctx);
+        transfer::public_transfer(fund, tx_context::sender(ctx));
+
+        // Mark the donation as cancelled
+        donation.recipient_is_pending = false;
     }
 }
