@@ -1,4 +1,4 @@
-module charity_tracking::charity_tracking {
+module Charity::charity_tracking {
 
     // Imports
     use sui::transfer;
@@ -37,25 +37,25 @@ module charity_tracking::charity_tracking {
     }
 
     // Accessors
-    public entry fun purpose_id(_: &AuthorityCap, donation: &Donation): u64 {
+    public fun purpose_id(_: &AuthorityCap, donation: &Donation): u64 {
         donation.purpose_id
     }
 
-    public entry fun amount(donation: &Donation, ctx: &mut TxContext): u64 {
+    public fun amount(donation: &Donation, ctx: &mut TxContext): u64 {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         donation.amount
     }
 
-    public entry fun is_received(donation: &Donation): u64 {
+    public fun is_received(donation: &Donation): u64 {
         balance::value(&donation.donation_fund)
     }
 
-    public entry fun authority_has_validated(donation: &Donation): bool {
+    public fun authority_has_validated(donation: &Donation): bool {
         donation.authority_validation
     }
 
     // Public - Entry functions
-    public entry fun make_donation(purpose_id: u64, amount: u64, ctx: &mut TxContext) {
+    public fun  make_donation(purpose_id: u64, amount: u64, ctx: &mut TxContext) {
         transfer::share_object(Donation {
             donor_address: tx_context::sender(ctx),
             id: object::new(ctx),
@@ -67,19 +67,19 @@ module charity_tracking::charity_tracking {
         });
     }
 
-    public entry fun create_authority_cap(_: &AdminCap, authority_address: address, ctx: &mut TxContext) {
+    public fun create_authority_cap(_: &AdminCap, authority_address: address, ctx: &mut TxContext) {
         transfer::transfer(AuthorityCap { 
             id: object::new(ctx),
         }, authority_address);
     }
 
-    public entry fun edit_purpose_id(donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
+    public fun edit_purpose_id(donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         donation.purpose_id = purpose_id;
     }
 
-    public entry fun allocate_donation(donation: &mut Donation, funds: &mut Coin<SUI>) {
+    public fun  allocate_donation(donation: &mut Donation, funds: &mut Coin<SUI>) {
         assert!(coin::value(funds) >= donation.amount, ENotEnough);
         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
 
@@ -89,11 +89,11 @@ module charity_tracking::charity_tracking {
         balance::join(&mut donation.donation_fund, donated);
     }
 
-    public entry fun validate_with_authority(_: &AuthorityCap, donation: &mut Donation) {
+    public fun  validate_with_authority(_: &AuthorityCap, donation: &mut Donation) {
         donation.authority_validation = true;
     }
 
-    public entry fun receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
+    public fun  receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
 
@@ -106,7 +106,7 @@ module charity_tracking::charity_tracking {
         donation.donor_address = recipient_address;
     }
 
-    public entry fun claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
+    public fun  claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         assert!(donation.authority_validation == false, ENotValidatedByAuthority);
@@ -117,7 +117,7 @@ module charity_tracking::charity_tracking {
         transfer::public_transfer(fund, tx_context::sender(ctx));
     }
     // Additional function: Cancel Donation
-    public entry fun cancel_donation(donation: &mut Donation, ctx: &mut TxContext) {
+    public fun  cancel_donation(donation: &mut Donation, ctx: &mut TxContext) {
     // Check if the donor is the sender
     assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
     // Check if the donation is pending and not received by the recipient
