@@ -33,6 +33,12 @@ module Charity::charity_tracking {
         to: ID 
     }
 
+    struct Receipt has key {
+        id: UID,
+        donation: ID,
+        amount_donated: u64,    
+    }
+
     // Module initializer
     fun init(ctx: &mut TxContext) {
         transfer::transfer(AdminCap {
