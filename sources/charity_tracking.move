@@ -104,31 +104,16 @@ module Charity::charity_tracking {
         fund
     }
 
-//     public fun claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
-//         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
-//         assert!(donation.recipient_is_pending, ERecipientPending);
-//         assert!(donation.authority_validation == false, ENotValidatedByAuthority);
-
-//         // Transfer the balance
-//         let amount = balance::value(&donation.donation_fund);
-//         let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-//         transfer::public_transfer(fund, tx_context::sender(ctx));
-//     }
-//     // Additional function: Cancel Donation
-//     public fun  cancel_donation(donation: &mut Donation, ctx: &mut TxContext) {
-//     // Check if the donor is the sender
-//     assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
-//     // Check if the donation is pending and not received by the recipient
-//     assert!(donation.recipient_is_pending, ERecipientPending);
-    
-//     // Return the donation amount to the donor
-//     let amount = balance::value(&donation.donation_fund);
-//     let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-//     transfer::public_transfer(fund, tx_context::sender(ctx));
-    
-//     // Mark the donation as cancelled
-//     donation.recipient_is_pending = false;
-//     }
-// }
-
+    // Additional function: Cancel Donation
+    public fun cancel_donation(donation: &mut Donation, receipt: Receipt, ctx: &mut TxContext) : Coin<SUI> {
+        assert!(object::id(donation) == receipt.donation, ENotOwner);
+        let Receipt {
+            id,
+            donation: _,
+            amount_donated,
+        } = receipt;
+        object::delete(id);
+        let fund = coin::take(&mut donation.balance, amount_donated, ctx);
+        fund
+    }
 }
