@@ -9,11 +9,8 @@ module Charity::charity_tracking {
     use sui::tx_context::{Self, TxContext};
 
     // Errors
-    const ENotEnough: u64 = 0;
-    const ERecipientPending: u64 = 1;
-    const EUndeclaredPurpose: u64 = 2;
-    const ENotValidatedByAuthority: u64 = 3;
-    const ENotOwner: u64 = 4;
+    const ERecipientPending: u64 = 0;
+    const ENotOwner: u64 = 1;
 
     // Struct definitions
     struct AdminCap has key { id: UID }
@@ -46,17 +43,17 @@ module Charity::charity_tracking {
         }, tx_context::sender(ctx))
     }
 
-    // public fun amount(donation: &Donation, ctx: &mut TxContext): u64 {
-    //     donation.amount
-    // }
+    public fun amount(donation: &Donation): u64 {
+        donation.amount
+    }
 
-    // public fun is_received(donation: &Donation): u64 {
-    //     balance::value(&donation.donation_fund)
-    // }
+    public fun is_received(donation: &Donation): u64 {
+        balance::value(&donation.balance)
+    }
 
-    // public fun authority_has_validated(donation: &Donation): bool {
-    //     donation.authority_validation
-    // }
+    public fun authority_has_validated(donation: &Donation): bool {
+        donation.authority_validation
+    }
 
     // Public - Entry functions
     public fun new(purpose_id: u64, amount: u64, ctx: &mut TxContext) : DonationCap {
@@ -89,14 +86,13 @@ module Charity::charity_tracking {
         }
     }
 
-    public fun new_id(cap: &DonationCap, donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
+    public fun new_id(cap: &DonationCap, donation: &mut Donation, purpose_id: u64 ) {
         assert!(cap.to == object::id(donation), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         donation.purpose_id = purpose_id;
     }
-
-
-    public fun withdraw(cap: &DonationCap, donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) : Coin<SUI> {
+    
+    public fun withdraw(cap: &DonationCap, donation: &mut Donation, ctx: &mut TxContext) : Coin<SUI> {
         assert!(cap.to == object::id(donation), ENotOwner);
         // Transfer the balance
         let amount = balance::value(&donation.balance);
