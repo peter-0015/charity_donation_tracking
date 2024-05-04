@@ -4,7 +4,7 @@ module Charity::charity_tracking {
     use sui::transfer;
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::balance::{Self, Balance};
     use sui::tx_context::{Self, TxContext};
 
@@ -17,7 +17,6 @@ module Charity::charity_tracking {
 
     // Struct definitions
     struct AdminCap has key { id: UID }
-    struct AuthorityCap has key { id: UID }
 
     struct Donation has key, store {
         id: UID,                            // Donation object ID
@@ -29,6 +28,11 @@ module Charity::charity_tracking {
         authority_validation: bool          // True if the authority has validated the donation
     }
 
+    struct DonationCap has key {
+        id: UID,
+        to: ID 
+    }
+
     // Module initializer
     fun init(ctx: &mut TxContext) {
         transfer::transfer(AdminCap {
@@ -36,13 +40,7 @@ module Charity::charity_tracking {
         }, tx_context::sender(ctx))
     }
 
-    // Accessors
-    public fun purpose_id(_: &AuthorityCap, donation: &Donation): u64 {
-        donation.purpose_id
-    }
-
     public fun amount(donation: &Donation, ctx: &mut TxContext): u64 {
-        assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         donation.amount
     }
 
@@ -55,22 +53,22 @@ module Charity::charity_tracking {
     }
 
     // Public - Entry functions
-    public fun  make_donation(purpose_id: u64, amount: u64, ctx: &mut TxContext) {
+    public fun new(purpose_id: u64, amount: u64, ctx: &mut TxContext) : DonationCap {
+        let id_ = object::new(ctx);
+        let inner_ = object::uid_to_inner(&id_);
         transfer::share_object(Donation {
+            id: id_,
             donor_address: tx_context::sender(ctx),
-            id: object::new(ctx),
             purpose_id: purpose_id,
             amount: amount,
             donation_fund: balance::zero(),
             recipient_is_pending: false,
             authority_validation: false
         });
-    }
-
-    public fun create_authority_cap(_: &AdminCap, authority_address: address, ctx: &mut TxContext) {
-        transfer::transfer(AuthorityCap { 
+        DonationCap{
             id: object::new(ctx),
-        }, authority_address);
+            to: inner_
+        }
     }
 
     public fun edit_purpose_id(donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
@@ -79,7 +77,7 @@ module Charity::charity_tracking {
         donation.purpose_id = purpose_id;
     }
 
-    public fun  allocate_donation(donation: &mut Donation, funds: &mut Coin<SUI>) {
+    public fun allocate_donation(donation: &mut Donation, funds: &mut Coin<SUI>) {
         assert!(coin::value(funds) >= donation.amount, ENotEnough);
         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
 
@@ -89,11 +87,7 @@ module Charity::charity_tracking {
         balance::join(&mut donation.donation_fund, donated);
     }
 
-    public fun  validate_with_authority(_: &AuthorityCap, donation: &mut Donation) {
-        donation.authority_validation = true;
-    }
-
-    public fun  receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
+    public fun receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
 
@@ -106,7 +100,7 @@ module Charity::charity_tracking {
         donation.donor_address = recipient_address;
     }
 
-    public fun  claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
+    public fun claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         assert!(donation.authority_validation == false, ENotValidatedByAuthority);
