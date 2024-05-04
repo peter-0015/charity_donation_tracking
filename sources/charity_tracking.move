@@ -89,34 +89,20 @@ module Charity::charity_tracking {
         }
     }
 
-    public fun edit_purpose_id(cap: &DonationCap, donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
+    public fun new_id(cap: &DonationCap, donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
         assert!(cap.to == object::id(donation), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         donation.purpose_id = purpose_id;
     }
 
-//     public fun allocate_donation(donation: &mut Donation, funds: &mut Coin<SUI>) {
-//         assert!(coin::value(funds) >= donation.amount, ENotEnough);
-//         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
 
-//         let coin_balance = coin::balance_mut(funds);
-//         let donated = balance::split(coin_balance, donation.amount);
-
-//         balance::join(&mut donation.donation_fund, donated);
-//     }
-
-//     public fun receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
-//         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
-//         assert!(donation.purpose_id == 0, EUndeclaredPurpose);
-
-//         // Transfer the balance
-//         let amount = balance::value(&donation.donation_fund);
-//         let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-//         transfer::public_transfer(fund, tx_context::sender(ctx));
-
-//         // Transfer the ownership
-//         donation.donor_address = recipient_address;
-//     }
+    public fun withdraw(cap: &DonationCap, donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) : Coin<SUI> {
+        assert!(cap.to == object::id(donation), ENotOwner);
+        // Transfer the balance
+        let amount = balance::value(&donation.balance);
+        let fund = coin::take(&mut donation.balance, amount, ctx);
+        fund
+    }
 
 //     public fun claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
 //         assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
