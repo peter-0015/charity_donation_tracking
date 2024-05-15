@@ -74,14 +74,14 @@ module charity_tracking::charity_tracking {
     }
 
     public entry fun edit_purpose_id(donation: &mut Donation, purpose_id: u64, ctx: &mut TxContext) {
-        assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
+        assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
         donation.purpose_id = purpose_id;
     }
 
     public entry fun allocate_donation(donation: &mut Donation, funds: &mut Coin<SUI>) {
         assert!(coin::value(funds) >= donation.amount, ENotEnough);
-        assert!(donation.purpose_id == 0, EUndeclaredPurpose);
+        assert!(donation.purpose_id != 0, EUndeclaredPurpose);
 
         let coin_balance = coin::balance_mut(funds);
         let donated = balance::split(coin_balance, donation.amount);
@@ -89,46 +89,50 @@ module charity_tracking::charity_tracking {
         balance::join(&mut donation.donation_fund, donated);
     }
 
-    public entry fun validate_with_authority(_: &AuthorityCap, donation: &mut Donation) {
+    public entry fun validate_with_authority(authority_cap: &AuthorityCap, donation: &mut Donation) {
+        assert!(!donation.authority_validation, ENotValidatedByAuthority);
+        assert!(authority_cap.id == object::id(donation), ENotValidatedByAuthority);
+
         donation.authority_validation = true;
     }
 
     public entry fun receive_by_recipient(donation: &mut Donation, recipient_address: address, ctx: &mut TxContext) {
-        assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
-        assert!(donation.purpose_id == 0, EUndeclaredPurpose);
+        assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
+        assert!(donation.purpose_id != 0, EUndeclaredPurpose);
 
         // Transfer the balance
         let amount = balance::value(&donation.donation_fund);
         let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-        transfer::public_transfer(fund, tx_context::sender(ctx));
+        transfer::public_transfer(fund, recipient_address);
 
         // Transfer the ownership
         donation.donor_address = recipient_address;
     }
 
     public entry fun claim_by_authority(donation: &mut Donation, ctx: &mut TxContext) {
-        assert!(donation.donor_address != tx_context::sender(ctx), ENotOwner);
+        assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
         assert!(donation.recipient_is_pending, ERecipientPending);
-        assert!(donation.authority_validation == false, ENotValidatedByAuthority);
+        assert!(!donation.authority_validation, ENotValidatedByAuthority);
 
         // Transfer the balance
         let amount = balance::value(&donation.donation_fund);
         let fund = coin::take(&mut donation.donation_fund, amount, ctx);
         transfer::public_transfer(fund, tx_context::sender(ctx));
     }
+
     // Additional function: Cancel Donation
     public entry fun cancel_donation(donation: &mut Donation, ctx: &mut TxContext) {
-    // Check if the donor is the sender
-    assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
-    // Check if the donation is pending and not received by the recipient
-    assert!(donation.recipient_is_pending, ERecipientPending);
-    
-    // Return the donation amount to the donor
-    let amount = balance::value(&donation.donation_fund);
-    let fund = coin::take(&mut donation.donation_fund, amount, ctx);
-    transfer::public_transfer(fund, tx_context::sender(ctx));
-    
-    // Mark the donation as cancelled
-    donation.recipient_is_pending = false;
+        // Check if the donor is the sender
+        assert!(donation.donor_address == tx_context::sender(ctx), ENotOwner);
+        // Check if the donation is pending and not received by the recipient
+        assert!(donation.recipient_is_pending, ERecipientPending);
+        
+        // Return the donation amount to the donor
+        let amount = balance::value(&donation.donation_fund);
+        let fund = coin::take(&mut donation.donation_fund, amount, ctx);
+        transfer::public_transfer(fund, tx_context::sender(ctx));
+        
+        // Mark the donation as cancelled
+        donation.recipient_is_pending = false;
     }
 }
