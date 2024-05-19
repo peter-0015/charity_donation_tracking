@@ -1,3 +1,4 @@
+#[allow(unused_variable)]
 module Charity::charity_tracking {
 
     // Imports
@@ -11,6 +12,7 @@ module Charity::charity_tracking {
     // Errors
     const ERecipientPending: u64 = 0;
     const ENotOwner: u64 = 1;
+    const ENotValidatedByAuthority: u64 = 2;
 
     // Struct definitions
     struct AdminCap has key { id: UID }
@@ -112,5 +114,83 @@ module Charity::charity_tracking {
         let fund = coin::take(&mut donation.balance, amount_donated, ctx);
         fund
     }
-}
+    // Additional function: Validate Donation
+    public fun validate_donation(donation: &mut Donation, ctx: &mut TxContext) {
+        assert!(donation.recipient_is_pending, ERecipientPending);
+        donation.authority_validation = true;
+    }
 
+    // Additional function: Mark Donation as Received
+    public fun mark_donation_received(donation: &mut Donation, ctx: &mut TxContext) {
+        assert!(donation.authority_validation, ENotValidatedByAuthority);
+        donation.recipient_is_pending = false;
+    }
+
+    // Additional function: Get Donation Details
+    public fun get_donation_details(donation: &Donation): (address, u64, bool, bool) {
+        (donation.donor_address, donation.amount, donation.recipient_is_pending, donation.authority_validation)
+    } 
+
+    // Additional function: Update Donation Amount
+    public fun update_donation_amount(donation: &mut Donation, new_amount: u64) {
+        donation.amount = new_amount;
+    }
+
+    // Additional function: Update Donation Purpose ID
+    public fun update_donation_purpose_id(donation: &mut Donation, new_purpose_id: u64) {
+        donation.purpose_id = new_purpose_id;
+    }
+
+    // Additional function: Check if Donation is Pending
+    public fun is_donation_pending(donation: &Donation): bool {
+        donation.recipient_is_pending
+    }
+
+    // Additional function: Check if Donation is Validated by Authority
+    public fun is_donation_validated(donation: &Donation): bool {
+        donation.authority_validation
+    }
+
+    // Additional function: Update Receipt Amount Donated
+    public fun update_receipt_amount_donated(receipt: &mut Receipt, new_amount_donated: u64) {
+        receipt.amount_donated = new_amount_donated;
+    }
+
+    // Additional function: Check if Cap is Owner of Donation
+    public fun is_cap_owner_of_donation(cap: &DonationCap, donation: &Donation): bool {
+        cap.to == object::id(donation)
+    }
+
+    // Additional function: Check if Cap is Owner of Receipt
+    public fun is_cap_owner_of_receipt(cap: &DonationCap, receipt: &Receipt): bool {
+        cap.to == receipt.donation
+    }
+    
+    // Additional function: Get Donation Purpose ID
+    public fun get_donation_purpose_id(donation: &Donation): u64 {
+        donation.purpose_id
+    }
+   
+    // Additional function: Get Receipt Donation ID
+    public fun get_receipt_donation_id(receipt: &Receipt): ID {
+        receipt.donation
+    }
+    // Additional function: Get Receipt Amount Donated
+    public fun get_receipt_amount_donated(receipt: &Receipt): u64 {
+        receipt.amount_donated
+    }
+   
+    // Additional function: Get Donation Donor Address
+    public fun get_donation_donor_address(donation: &Donation): address {
+        donation.donor_address
+    }
+    // Additional function: Get Donation Recipient Pending Status
+    public fun get_donation_recipient_pending_status(donation: &Donation): bool {
+        donation.recipient_is_pending
+    }
+    // Additional function: Get Donation Authority Validation Status
+    public fun get_donation_authority_validation_status(donation: &Donation): bool {
+        donation.authority_validation
+    }
+}
+   
