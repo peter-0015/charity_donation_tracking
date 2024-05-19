@@ -9,49 +9,84 @@ The Charity Donation Tracking module facilitates the transparent and accountable
 - **donor_address**: Address of the donor making the donation.
 - **purpose_id**: Identifier for the purpose of the donation.
 - **amount**: Amount of the donation.
-- **donation_fund**: Balance of SUI tokens representing the donated amount.
+- **balance**: Balance of SUI tokens representing the donated amount.
 - **recipient_is_pending**: Boolean indicating whether the donation is pending receipt by the recipient.
 - **authority_validation**: Boolean indicating whether the donation has been validated by the authority.
 
 ### AdminCap
 - **id**: Unique identifier for administrative privileges within the charity tracking system.
 
-### AuthorityCap
-- **id**: Unique identifier for authority privileges, allowing designated authorities to validate donations.
+### Receipt
+- **id**: Unique identifier for the receipt.
+- **donation**: ID of the associated donation.
+- **amount_donated**: Amount donated as recorded in the receipt.
 
 ## Public - Entry Functions
 
-### make_donation
-Allows users to make a donation by creating a new donation object with the provided purpose and amount.
+### new
+Allows users to create a new donation with a specified purpose and amount, returning a capability for managing the donation.
 
-### create_authority_cap
-Creates a capability for authority to validate donations.
+### deposit
+Deposits SUI coins into the donation's balance, generating a receipt for the transaction.
 
-### edit_purpose_id
-Allows editing the purpose ID of a donation, restricted to pending donations.
+### new_id
+Updates the purpose ID of a pending donation, restricted to the donation's owner.
 
-### allocate_donation
-Allocates donation funds to a specific purpose, ensuring there are enough funds available.
-
-### validate_with_authority
-Allows the authority to validate a donation.
-
-### receive_by_recipient
-Allows the recipient to receive a donation, transferring the donation fund and ownership.
-
-### claim_by_authority
-Allows the authority to claim a donation after validation.
+### withdraw
+Allows the owner of a donation to withdraw its balance as SUI coins.
 
 ### cancel_donation
-Allows the donor to cancel a donation, refunding the donation amount if not yet received by the recipient.
+Allows the donor to cancel a donation, withdrawing the donated amount if it hasn't been received by the recipient.
 
 ## Additional Functions
 
 ### validate_donation
-Allows the authority to validate a donation, marking it as validated.
+Allows authorities to validate a donation, marking it as validated.
 
-### reject_donation
-Allows the authority to reject a donation, returning the donation amount to the donor.
+### mark_donation_received
+Marks a validated donation as received by the recipient.
+
+### get_donation_details
+Retrieves details of a donation, including donor address, amount, and validation status.
+
+### update_donation_amount
+Updates the amount of a donation.
+
+### update_donation_purpose_id
+Updates the purpose ID of a donation.
+
+### is_donation_pending
+Checks if a donation is pending receipt by the recipient.
+
+### is_donation_validated
+Checks if a donation has been validated by an authority.
+
+### update_receipt_amount_donated
+Updates the amount donated in a receipt.
+
+### is_cap_owner_of_donation
+Checks if a capability is the owner of a donation.
+
+### is_cap_owner_of_receipt
+Checks if a capability is the owner of a receipt.
+
+### get_donation_purpose_id
+Retrieves the purpose ID of a donation.
+
+### get_receipt_donation_id
+Retrieves the ID of the donation associated with a receipt.
+
+### get_receipt_amount_donated
+Retrieves the amount donated as recorded in a receipt.
+
+### get_donation_donor_address
+Retrieves the donor address of a donation.
+
+### get_donation_recipient_pending_status
+Retrieves the pending status of a donation.
+
+### get_donation_authority_validation_status
+Retrieves the validation status of a donation.
 
 ## Setup
 
@@ -79,23 +114,23 @@ Allows the authority to reject a donation, returning the donation amount to the 
 
 ### Making a Donation
 
-To make a donation, invoke the `make_donation` function with the specified purpose and amount.
+To make a donation, invoke the `new` function with the specified purpose and amount.
 
 ### Validating a Donation
 
-Authorities can validate or reject donations using the `validate_with_authority` or `reject_donation` functions, respectively.
+Authorities can validate a donation using the `validate_donation` function.
 
 ### Receiving a Donation
 
-Recipients can receive donations using the `receive_by_recipient` function, transferring the donation fund and ownership.
+Recipients can mark a validated donation as received using the `mark_donation_received` function.
 
 ### Canceling a Donation
 
-Donors can cancel donations that have not yet been received by the recipient using the `cancel_donation` function.
+Donors can cancel a donation using the `cancel_donation` function.
 
 ### Managing Donation Purposes
 
-Donation purposes can be edited using the `edit_purpose_id` function, restricted to pending donations.
+Donation purposes can be updated using the `update_donation_purpose_id` function, restricted to pending donations.
 
 ## Interacting with the Smart Contract
 
